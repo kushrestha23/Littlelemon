@@ -1,19 +1,24 @@
-from rest_framework import generics
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
 from .models import MenuItem
 from .serializers import MenuItemSerializer
-from django.http import JsonResponse
 
 
-def api_view(request):
-    # API LOGIC
-    return JsonResponse({"message": "API response"})
+@api_view(["GET", "POST "])
+def menu_items(requests):
+    if request.method == "GET":
+        items = MenuItem.objects.select_related("cateogry").all()
+        serialized_item = MenuItemSerializer(items, many=True)
+        return Response(serialized_item.data)
+    if request.method == "POST":
+        serialized_item = MenuItemSerializer(data=request.data)
+        serialized_item.is_valid(raise_exception=True)
+        serialized_item.save()
+        return Response(serialized_item.data, status.HTTP_201_CREATED)
 
 
-class MenuItemsView(generics.ListCreateAPIView):
-    queryset = MenuItem.objects.all()
-    serializer_class = MenuItemSerializer
-
-
-class SingleMenuItemView(generics.RetrieveUpdateAPIView, generics.DestroyAPIView):
-    queryset = MenuItem.objects.all()
-    serializer_class = MenuItemSerializer
+@api_view()
+def single_item(request, id):
+    item = MenuItem.objects.get(pk=id)
+    serialized_item = MenuItemSerializer(item)
+    return Response(serialized_item.data)
